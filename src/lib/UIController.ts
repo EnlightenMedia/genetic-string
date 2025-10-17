@@ -281,6 +281,7 @@ export class UIController {
       stats.generation,
       stats.bestIndividual.fitness,
       stats.averageFitness,
+      stats.diversity,
       maxFitness,
     );
   }

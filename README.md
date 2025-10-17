@@ -5,6 +5,8 @@ A interactive web application that demonstrates how genetic algorithms can evolv
 ![Genetic Algorithm Visualization](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
 ![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)
 
+🎮 **[Try the live demo](https://genetic-string.enlighten-media.net/)**
+
 ## 🧬 What is This?
 
 This project visualizes how genetic algorithms work by evolving random strings to match a target string. Watch as a population of random characters gradually evolves through generations using principles inspired by natural selection:

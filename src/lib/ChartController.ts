@@ -2,6 +2,7 @@ export interface ChartData {
   generation: number;
   bestFitness: number;
   avgFitness: number;
+  diversity: number;
   maxFitness: number;
 }
 
@@ -11,9 +12,10 @@ export class ChartController {
   private data: ChartData[] = [];
   private emptyMessage: HTMLElement;
 
-  private readonly padding = { top: 20, right: 20, bottom: 40, left: 50 };
+  private readonly padding = { top: 20, right: 50, bottom: 40, left: 50 };
   private readonly bestColor = '#4caf50';
   private readonly avgColor = '#646cff';
+  private readonly diversityColor = '#ff9800';
   private readonly gridColor = 'rgba(255, 255, 255, 0.1)';
   private readonly textColor = 'rgba(255, 255, 255, 0.6)';
 
@@ -58,9 +60,10 @@ export class ChartController {
     generation: number,
     bestFitness: number,
     avgFitness: number,
+    diversity: number,
     maxFitness: number,
   ): void {
-    this.data.push({ generation, bestFitness, avgFitness, maxFitness });
+    this.data.push({ generation, bestFitness, avgFitness, diversity, maxFitness });
 
     if (this.data.length === 1) {
       this.canvas.classList.add('active');
@@ -99,10 +102,15 @@ export class ChartController {
     const minGen = 0;
     const minFit = 0;
 
-    // Draw grid and axes
-    this.drawGrid(chartWidth, chartHeight, maxGen, maxFit);
+    // Dynamic diversity range for better visibility
+    const diversityValues = this.data.map((d) => d.diversity);
+    const maxDiv = Math.ceil(Math.max(...diversityValues));
+    const minDiv = Math.floor(Math.min(...diversityValues));
 
-    // Draw lines
+    // Draw grid and axes
+    this.drawGrid(chartWidth, chartHeight, maxGen, maxFit, maxDiv, minDiv);
+
+    // Draw fitness lines (left y-axis)
     this.drawLine(
       this.data.map((d) => d.bestFitness),
       this.bestColor,
@@ -123,9 +131,28 @@ export class ChartController {
       minGen,
       minFit,
     );
+
+    // Draw diversity line (right y-axis)
+    this.drawLine(
+      this.data.map((d) => d.diversity),
+      this.diversityColor,
+      chartWidth,
+      chartHeight,
+      maxGen,
+      maxDiv,
+      minGen,
+      minDiv,
+    );
   }
 
-  private drawGrid(chartWidth: number, chartHeight: number, maxGen: number, maxFit: number): void {
+  private drawGrid(
+    chartWidth: number,
+    chartHeight: number,
+    maxGen: number,
+    maxFit: number,
+    maxDiv: number,
+    minDiv: number,
+  ): void {
     this.ctx.strokeStyle = this.gridColor;
     this.ctx.lineWidth = 1;
     this.ctx.font = '12px Inter, sans-serif';
@@ -142,10 +169,15 @@ export class ChartController {
       this.ctx.lineTo(this.padding.left + chartWidth, y);
       this.ctx.stroke();
 
-      // Y-axis labels
+      // Y-axis labels (left - fitness)
       this.ctx.textAlign = 'right';
       this.ctx.textBaseline = 'middle';
       this.ctx.fillText(Math.round(fitness).toString(), this.padding.left - 10, y);
+
+      // Y-axis labels (right - diversity %)
+      const diversity = maxDiv - ((maxDiv - minDiv) * i) / fitnessSteps;
+      this.ctx.textAlign = 'left';
+      this.ctx.fillText(Math.round(diversity) + '%', this.padding.left + chartWidth + 10, y);
     }
 
     // Vertical grid lines (generation)

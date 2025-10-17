@@ -1,5 +1,10 @@
 import { GeneticAlgorithm } from './GeneticAlgorithm';
-import type { GeneticAlgorithmConfig, GenerationStats, CharacterSet, SelectionStrategy } from './GeneticAlgorithm';
+import type {
+  GeneticAlgorithmConfig,
+  GenerationStats,
+  CharacterSet,
+  SelectionStrategy,
+} from './GeneticAlgorithm';
 import { ChartController } from './ChartController';
 
 export class UIController {

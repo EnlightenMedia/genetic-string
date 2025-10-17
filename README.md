@@ -2,9 +2,6 @@
 
 A interactive web application that demonstrates how genetic algorithms can evolve random strings into a target string through natural selection, crossover, and mutation.
 
-![Genetic Algorithm Visualization](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
-![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)
-
 🎮 **[Try the live demo](https://genetic-string.enlighten-media.net/)**
 
 ## 🧬 What is This?

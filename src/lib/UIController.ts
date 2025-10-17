@@ -1,0 +1,270 @@
+import { GeneticAlgorithm } from './GeneticAlgorithm';
+import type { GeneticAlgorithmConfig, GenerationStats, CharacterSet } from './GeneticAlgorithm';
+
+export class UIController {
+  private ga: GeneticAlgorithm | null = null;
+  private isRunning: boolean = false;
+  private intervalId: number | null = null;
+
+  // Input elements
+  private targetInput: HTMLInputElement;
+  private populationInput: HTMLInputElement;
+  private survivalInput: HTMLInputElement;
+  private delayInput: HTMLInputElement;
+  private characterSetSelect: HTMLSelectElement;
+  private mutationToggle: HTMLInputElement;
+
+  // Button elements
+  private initButton: HTMLButtonElement;
+  private stepButton: HTMLButtonElement;
+  private startButton: HTMLButtonElement;
+  private stopButton: HTMLButtonElement;
+  private resetButton: HTMLButtonElement;
+
+  // Display elements
+  private generationDisplay: HTMLElement;
+  private bestStringDisplay: HTMLElement;
+  private bestScoreDisplay: HTMLElement;
+  private avgScoreDisplay: HTMLElement;
+  private statusDisplay: HTMLElement;
+  private populationList: HTMLElement;
+
+  constructor() {
+    // Get input elements
+    this.targetInput = this.getElement<HTMLInputElement>('#target');
+    this.populationInput = this.getElement<HTMLInputElement>('#population');
+    this.survivalInput = this.getElement<HTMLInputElement>('#survival');
+    this.delayInput = this.getElement<HTMLInputElement>('#delay');
+    this.characterSetSelect = this.getElement<HTMLSelectElement>('#characterSet');
+    this.mutationToggle = this.getElement<HTMLInputElement>('#mutation');
+
+    // Get button elements
+    this.initButton = this.getElement<HTMLButtonElement>('#initBtn');
+    this.stepButton = this.getElement<HTMLButtonElement>('#stepBtn');
+    this.startButton = this.getElement<HTMLButtonElement>('#startBtn');
+    this.stopButton = this.getElement<HTMLButtonElement>('#stopBtn');
+    this.resetButton = this.getElement<HTMLButtonElement>('#resetBtn');
+
+    // Get display elements
+    this.generationDisplay = this.getElement('#generation');
+    this.bestStringDisplay = this.getElement('#bestString');
+    this.bestScoreDisplay = this.getElement('#bestScore');
+    this.avgScoreDisplay = this.getElement('#avgScore');
+    this.statusDisplay = this.getElement('#status');
+    this.populationList = this.getElement('#populationList');
+
+    this.attachEventListeners();
+    this.updateButtonStates();
+  }
+
+  private getElement<T extends HTMLElement>(selector: string): T {
+    const element = document.querySelector<T>(selector);
+    if (!element) {
+      throw new Error(`Element not found: ${selector}`);
+    }
+    return element;
+  }
+
+  private attachEventListeners(): void {
+    this.initButton.addEventListener('click', () => this.handleInitialize());
+    this.stepButton.addEventListener('click', () => this.handleStep());
+    this.startButton.addEventListener('click', () => this.handleStart());
+    this.stopButton.addEventListener('click', () => this.handleStop());
+    this.resetButton.addEventListener('click', () => this.handleReset());
+
+    // Input validation
+    this.populationInput.addEventListener('input', () => {
+      const value = parseInt(this.populationInput.value);
+      if (value < 0) this.populationInput.value = '0';
+      if (value > 1000) this.populationInput.value = '1000';
+    });
+
+    this.survivalInput.addEventListener('input', () => {
+      const value = parseInt(this.survivalInput.value);
+      if (value < 1) this.survivalInput.value = '1';
+      if (value > 100) this.survivalInput.value = '100';
+    });
+
+    this.delayInput.addEventListener('input', () => {
+      const value = parseInt(this.delayInput.value);
+      if (value < 0) this.delayInput.value = '0';
+    });
+  }
+
+  private getConfig(): GeneticAlgorithmConfig {
+    return {
+      target: this.targetInput.value,
+      populationSize: parseInt(this.populationInput.value),
+      survivalRate: parseInt(this.survivalInput.value),
+      mutationEnabled: this.mutationToggle.checked,
+      mutationRate: 0.01,
+      characterSet: this.characterSetSelect.value as CharacterSet,
+    };
+  }
+
+  private handleInitialize(): void {
+    const config = this.getConfig();
+
+    if (!config.target) {
+      this.updateStatus('Please enter a target string', 'error');
+      return;
+    }
+
+    if (config.populationSize < 2) {
+      this.updateStatus('Population size must be at least 2', 'error');
+      return;
+    }
+
+    this.ga = new GeneticAlgorithm(config);
+    this.ga.initialize();
+
+    const stats = this.ga.getStats();
+    this.updateDisplay(stats);
+    this.updateStatus('Simulation initialized', 'success');
+    this.updateButtonStates();
+  }
+
+  private handleStep(): void {
+    if (!this.ga) {
+      this.updateStatus('Please initialize the simulation first', 'error');
+      return;
+    }
+
+    const stats = this.ga.step();
+    this.updateDisplay(stats);
+
+    if (stats.isComplete) {
+      this.updateStatus('Target reached! 🎉', 'success');
+      this.handleStop();
+    } else {
+      this.updateStatus('Step completed', 'success');
+    }
+  }
+
+  private handleStart(): void {
+    if (!this.ga) {
+      this.updateStatus('Please initialize the simulation first', 'error');
+      return;
+    }
+
+    this.isRunning = true;
+    this.updateButtonStates();
+    this.updateStatus('Simulation running...', 'running');
+
+    const delay = parseInt(this.delayInput.value);
+
+    const runStep = () => {
+      if (!this.isRunning || !this.ga) return;
+
+      const stats = this.ga.step();
+      this.updateDisplay(stats);
+
+      if (stats.isComplete) {
+        this.updateStatus('Target reached! 🎉', 'success');
+        this.handleStop();
+      } else {
+        this.intervalId = window.setTimeout(runStep, delay);
+      }
+    };
+
+    this.intervalId = window.setTimeout(runStep, delay);
+  }
+
+  private handleStop(): void {
+    this.isRunning = false;
+    if (this.intervalId !== null) {
+      clearTimeout(this.intervalId);
+      this.intervalId = null;
+    }
+    this.updateButtonStates();
+    this.updateStatus('Simulation stopped', 'info');
+  }
+
+  private handleReset(): void {
+    this.handleStop();
+
+    if (this.ga) {
+      this.ga.reset();
+    }
+
+    this.ga = null;
+    this.clearDisplay();
+    this.updateStatus('Simulation reset', 'info');
+    this.updateButtonStates();
+  }
+
+  private updateDisplay(stats: GenerationStats): void {
+    this.generationDisplay.textContent = stats.generation.toString();
+    this.bestStringDisplay.textContent = `"${stats.bestIndividual.dna}"`;
+    this.bestScoreDisplay.textContent = `${stats.bestIndividual.fitness} / ${stats.bestIndividual.dna.length}`;
+    this.avgScoreDisplay.textContent = stats.averageFitness.toFixed(2);
+    this.updatePopulationDisplay();
+  }
+
+  private clearDisplay(): void {
+    this.generationDisplay.textContent = '-';
+    this.bestStringDisplay.textContent = '-';
+    this.bestScoreDisplay.textContent = '-';
+    this.avgScoreDisplay.textContent = '-';
+    this.populationList.innerHTML =
+      '<p class="empty-message">Initialize the simulation to see the population</p>';
+  }
+
+  private updateStatus(message: string, type: 'success' | 'error' | 'info' | 'running'): void {
+    this.statusDisplay.textContent = message;
+    this.statusDisplay.className = `status ${type}`;
+  }
+
+  private updateButtonStates(): void {
+    const isInitialized = this.ga !== null;
+
+    this.initButton.disabled = this.isRunning;
+    this.stepButton.disabled = !isInitialized || this.isRunning;
+    this.startButton.disabled = !isInitialized || this.isRunning;
+    this.stopButton.disabled = !this.isRunning;
+    this.resetButton.disabled = this.isRunning;
+
+    // Disable inputs while running
+    this.targetInput.disabled = this.isRunning;
+    this.populationInput.disabled = this.isRunning;
+    this.survivalInput.disabled = this.isRunning;
+    this.characterSetSelect.disabled = this.isRunning;
+    this.mutationToggle.disabled = this.isRunning;
+  }
+
+  private updatePopulationDisplay(): void {
+    if (!this.ga) {
+      this.populationList.innerHTML =
+        '<p class="empty-message">Initialize the simulation to see the population</p>';
+      return;
+    }
+
+    const population = (this.ga as any).population as Array<{ dna: string; fitness: number }>;
+
+    // Sort population by fitness (descending) for display
+    const sortedPopulation = [...population].sort((a, b) => b.fitness - a.fitness);
+
+    this.populationList.innerHTML = sortedPopulation
+      .map((individual, index) => {
+        const isBest = index === 0;
+        const percentage = ((individual.fitness / individual.dna.length) * 100).toFixed(1);
+        return `
+          <div class="population-item ${isBest ? 'best' : ''}">
+            <div class="population-dna">${this.escapeHtml(individual.dna)}</div>
+            <div class="population-fitness">
+              Score: <span class="fitness-value">${individual.fitness}/${
+          individual.dna.length
+        }</span> (${percentage}%)
+            </div>
+          </div>
+        `;
+      })
+      .join('');
+  }
+
+  private escapeHtml(text: string): string {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+}

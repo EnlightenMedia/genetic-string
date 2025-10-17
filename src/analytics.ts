@@ -13,27 +13,47 @@ export function trackButtonClick(buttonName: string): void {
 }
 
 /**
- * Track grid initialization
+ * Track genetic algorithm initialization
  */
 export function trackInitialized(config: {
-  height: number;
-  width: number;
-  foodCount: number;
-  cellCount: number;
-  maxValue: number;
-  energy: number;
-  cellsDie: boolean;
-  allowRandomMove: boolean;
-  cannibalMode: boolean;
+  targetLength: number;
+  populationSize: number;
+  survivalPercentage: number;
+  mutationRate: number;
+  characterSet: string;
+  selectionStrategy: string;
 }): void {
-  track('grid_initialized', config);
+  track('ga_initialized', config);
 }
 
 /**
  * Track simulation start
  */
-export function trackSimulationStarted(delay: number): void {
-  track('simulation_started', { delay });
+export function trackSimulationStarted(config: {
+  targetLength: number;
+  populationSize: number;
+  stepDelay: number;
+}): void {
+  track('simulation_started', config);
+}
+
+/**
+ * Track simulation completion
+ */
+export function trackSimulationCompleted(stats: {
+  generations: number;
+  targetLength: number;
+  populationSize: number;
+  finalDiversity: number;
+}): void {
+  track('simulation_completed', stats);
+}
+
+/**
+ * Track preset selection
+ */
+export function trackPresetSelected(presetName: string): void {
+  track('preset_selected', { preset: presetName });
 }
 
 /**
@@ -55,6 +75,8 @@ export const analytics = {
   trackButtonClick,
   trackInitialized,
   trackSimulationStarted,
+  trackSimulationCompleted,
+  trackPresetSelected,
   trackHelpOpened,
   trackHelpClosed,
 };

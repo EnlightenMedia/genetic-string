@@ -6,6 +6,7 @@ import type {
   SelectionStrategy,
 } from './GeneticAlgorithm';
 import { ChartController } from './ChartController';
+import { analytics } from '../analytics';
 
 export class UIController {
   private ga: GeneticAlgorithm | null = null;
@@ -90,11 +91,26 @@ export class UIController {
   }
 
   private attachEventListeners(): void {
-    this.initButton.addEventListener('click', () => this.handleInitialize());
-    this.stepButton.addEventListener('click', () => this.handleStep());
-    this.startButton.addEventListener('click', () => this.handleStart());
-    this.stopButton.addEventListener('click', () => this.handleStop());
-    this.resetButton.addEventListener('click', () => this.handleReset());
+    this.initButton.addEventListener('click', () => {
+      analytics.trackButtonClick('initialize');
+      this.handleInitialize();
+    });
+    this.stepButton.addEventListener('click', () => {
+      analytics.trackButtonClick('step');
+      this.handleStep();
+    });
+    this.startButton.addEventListener('click', () => {
+      analytics.trackButtonClick('start');
+      this.handleStart();
+    });
+    this.stopButton.addEventListener('click', () => {
+      analytics.trackButtonClick('stop');
+      this.handleStop();
+    });
+    this.resetButton.addEventListener('click', () => {
+      analytics.trackButtonClick('reset');
+      this.handleReset();
+    });
 
     // Preset buttons
     const presetButtons = document.querySelectorAll('.btn-preset');
@@ -102,6 +118,7 @@ export class UIController {
       button.addEventListener('click', (e) => {
         const preset = (e.target as HTMLElement).getAttribute('data-preset');
         if (preset) {
+          analytics.trackPresetSelected(preset);
           this.applyPreset(preset);
         }
       });
@@ -187,6 +204,16 @@ export class UIController {
     this.updateDisplay(stats);
     this.updateStatus('Simulation initialized', 'success');
     this.updateButtonStates();
+
+    // Track initialization
+    analytics.trackInitialized({
+      targetLength: config.target.length,
+      populationSize: config.populationSize,
+      survivalPercentage: config.survivalRate,
+      mutationRate: config.mutationRate ?? 0.01,
+      characterSet: config.characterSet,
+      selectionStrategy: config.selectionStrategy,
+    });
   }
 
   private handleStep(): void {
@@ -218,6 +245,15 @@ export class UIController {
 
     const delay = parseInt(this.delayInput.value);
 
+    // Track simulation start
+    const stats = this.ga.getStats();
+    const config = this.getConfig();
+    analytics.trackSimulationStarted({
+      targetLength: stats.bestIndividual.dna.length,
+      populationSize: config.populationSize,
+      stepDelay: delay,
+    });
+
     const runStep = () => {
       if (!this.isRunning || !this.ga) return;
 
@@ -226,6 +262,14 @@ export class UIController {
 
       if (stats.isComplete) {
         this.updateStatus('Target reached! 🎉', 'success');
+        // Track completion
+        const config = this.getConfig();
+        analytics.trackSimulationCompleted({
+          generations: stats.generation,
+          targetLength: stats.bestIndividual.dna.length,
+          populationSize: config.populationSize,
+          finalDiversity: stats.diversity,
+        });
         this.handleStop();
       } else {
         this.intervalId = window.setTimeout(runStep, delay);

@@ -1,5 +1,5 @@
 import { GeneticAlgorithm } from './GeneticAlgorithm';
-import type { GeneticAlgorithmConfig, GenerationStats, CharacterSet } from './GeneticAlgorithm';
+import type { GeneticAlgorithmConfig, GenerationStats, CharacterSet, SelectionStrategy } from './GeneticAlgorithm';
 import { ChartController } from './ChartController';
 
 export class UIController {
@@ -14,6 +14,7 @@ export class UIController {
   private survivalInput: HTMLInputElement;
   private delayInput: HTMLInputElement;
   private characterSetSelect: HTMLSelectElement;
+  private selectionStrategySelect: HTMLSelectElement;
   private mutationToggle: HTMLInputElement;
   private mutationRateSlider: HTMLInputElement;
   private mutationRateValue: HTMLElement;
@@ -44,6 +45,7 @@ export class UIController {
     this.survivalInput = this.getElement<HTMLInputElement>('#survival');
     this.delayInput = this.getElement<HTMLInputElement>('#delay');
     this.characterSetSelect = this.getElement<HTMLSelectElement>('#characterSet');
+    this.selectionStrategySelect = this.getElement<HTMLSelectElement>('#selectionStrategy');
     this.mutationToggle = this.getElement<HTMLInputElement>('#mutation');
     this.mutationRateSlider = this.getElement<HTMLInputElement>('#mutationRate');
     this.mutationRateValue = this.getElement('#mutationRateValue');
@@ -132,6 +134,7 @@ export class UIController {
       mutationEnabled: this.mutationToggle.checked,
       mutationRate: parseFloat(this.mutationRateSlider.value) / 100,
       characterSet: this.characterSetSelect.value as CharacterSet,
+      selectionStrategy: this.selectionStrategySelect.value as SelectionStrategy,
     };
   }
 
@@ -309,6 +312,7 @@ export class UIController {
     this.populationInput.disabled = this.isRunning;
     this.survivalInput.disabled = this.isRunning;
     this.characterSetSelect.disabled = this.isRunning;
+    this.selectionStrategySelect.disabled = this.isRunning;
     this.mutationToggle.disabled = this.isRunning;
     this.mutationRateSlider.disabled = this.isRunning;
 
@@ -361,6 +365,7 @@ export class UIController {
       population: number;
       survival: number;
       characterSet: CharacterSet;
+      selectionStrategy: SelectionStrategy;
       mutation: boolean;
       mutationRate: number;
       delay: number;
@@ -372,6 +377,7 @@ export class UIController {
         population: 500,
         survival: 20,
         characterSet: 'letters-space',
+        selectionStrategy: 'elitism',
         mutation: false,
         mutationRate: 1.0,
         delay: 100,
@@ -381,6 +387,7 @@ export class UIController {
         population: 800,
         survival: 15,
         characterSet: 'letters-space',
+        selectionStrategy: 'elitism',
         mutation: true,
         mutationRate: 2.0,
         delay: 50,
@@ -390,6 +397,7 @@ export class UIController {
         population: 1000,
         survival: 10,
         characterSet: 'letters-space',
+        selectionStrategy: 'semi-elitism',
         mutation: true,
         mutationRate: 1.5,
         delay: 50,
@@ -399,6 +407,7 @@ export class UIController {
         population: 800,
         survival: 20,
         characterSet: 'letters-space',
+        selectionStrategy: 'elitism',
         mutation: false,
         mutationRate: 1.0,
         delay: 75,
@@ -408,6 +417,7 @@ export class UIController {
         population: 300,
         survival: 25,
         characterSet: 'letters-space',
+        selectionStrategy: 'random',
         mutation: false,
         mutationRate: 0.5,
         delay: 100,
@@ -417,6 +427,7 @@ export class UIController {
         population: 600,
         survival: 15,
         characterSet: 'printable-ascii',
+        selectionStrategy: 'elitism',
         mutation: true,
         mutationRate: 3.0,
         delay: 75,
@@ -429,6 +440,7 @@ export class UIController {
       this.populationInput.value = config.population.toString();
       this.survivalInput.value = config.survival.toString();
       this.characterSetSelect.value = config.characterSet;
+      this.selectionStrategySelect.value = config.selectionStrategy;
       this.mutationToggle.checked = config.mutation;
       this.mutationRateSlider.value = config.mutationRate.toString();
       this.mutationRateValue.textContent = config.mutationRate.toString();

@@ -1,4 +1,5 @@
 export type CharacterSet = 'letters-space' | 'alphanumeric-space' | 'printable-ascii';
+export type SelectionStrategy = 'elitism' | 'semi-elitism' | 'random';
 
 export interface Individual {
   dna: string;
@@ -12,6 +13,7 @@ export interface GeneticAlgorithmConfig {
   mutationEnabled: boolean;
   mutationRate?: number; // probability 0-1
   characterSet: CharacterSet;
+  selectionStrategy: SelectionStrategy;
 }
 
 export interface GenerationStats {
@@ -102,9 +104,14 @@ export class GeneticAlgorithm {
     }
   }
 
-  private selectParent(survivors: Individual[]): Individual {
-    const index = Math.floor(Math.random() * survivors.length);
-    return survivors[index];
+  private selectParent(pool: Individual[]): Individual {
+    const index = Math.floor(Math.random() * pool.length);
+    return pool[index];
+  }
+
+  private selectRandomFromPopulation(): Individual {
+    const index = Math.floor(Math.random() * this.population.length);
+    return this.population[index];
   }
 
   private crossover(parent1: Individual, parent2: Individual): [string, string] {
@@ -151,12 +158,38 @@ export class GeneticAlgorithm {
     );
     const survivors = this.population.slice(0, survivorCount);
 
-    // Create new population
-    const newPopulation: Individual[] = [...survivors];
+    // Create new population based on strategy
+    let newPopulation: Individual[] = [];
 
+    // For elitism, keep top survivors
+    if (this.config.selectionStrategy === 'elitism') {
+      newPopulation = [...survivors];
+    }
+
+    // Fill the rest of the population
     while (newPopulation.length < this.config.populationSize) {
-      const parent1 = this.selectParent(survivors);
-      const parent2 = this.selectParent(survivors);
+      let parent1: Individual;
+      let parent2: Individual;
+
+      switch (this.config.selectionStrategy) {
+        case 'elitism':
+          // Both parents from survivors
+          parent1 = this.selectParent(survivors);
+          parent2 = this.selectParent(survivors);
+          break;
+
+        case 'semi-elitism':
+          // One parent from survivors, one from entire population
+          parent1 = this.selectParent(survivors);
+          parent2 = this.selectRandomFromPopulation();
+          break;
+
+        case 'random':
+          // Both parents from entire population
+          parent1 = this.selectRandomFromPopulation();
+          parent2 = this.selectRandomFromPopulation();
+          break;
+      }
 
       const [child1DNA, child2DNA] = this.crossover(parent1, parent2);
 

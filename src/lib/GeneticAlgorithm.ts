@@ -53,6 +53,10 @@ export class GeneticAlgorithm {
     }
   }
 
+  public getCharacterPool(): string {
+    return this.characterPool;
+  }
+
   private getRandomCharacter(): string {
     const index = Math.floor(Math.random() * this.characterPool.length);
     return this.characterPool[index];

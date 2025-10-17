@@ -1,10 +1,12 @@
 import { GeneticAlgorithm } from './GeneticAlgorithm';
 import type { GeneticAlgorithmConfig, GenerationStats, CharacterSet } from './GeneticAlgorithm';
+import { ChartController } from './ChartController';
 
 export class UIController {
   private ga: GeneticAlgorithm | null = null;
   private isRunning: boolean = false;
   private intervalId: number | null = null;
+  private chart: ChartController;
 
   // Input elements
   private targetInput: HTMLInputElement;
@@ -53,6 +55,9 @@ export class UIController {
     this.statusDisplay = this.getElement('#status');
     this.populationList = this.getElement('#populationList');
 
+    // Initialize chart
+    this.chart = new ChartController('fitnessChart', 'chartEmptyMessage');
+
     this.attachEventListeners();
     this.updateButtonStates();
   }
@@ -72,11 +77,22 @@ export class UIController {
     this.stopButton.addEventListener('click', () => this.handleStop());
     this.resetButton.addEventListener('click', () => this.handleReset());
 
+    // Preset buttons
+    const presetButtons = document.querySelectorAll('.btn-preset');
+    presetButtons.forEach((button) => {
+      button.addEventListener('click', (e) => {
+        const preset = (e.target as HTMLElement).getAttribute('data-preset');
+        if (preset) {
+          this.applyPreset(preset);
+        }
+      });
+    });
+
     // Input validation
     this.populationInput.addEventListener('input', () => {
       const value = parseInt(this.populationInput.value);
       if (value < 0) this.populationInput.value = '0';
-      if (value > 1000) this.populationInput.value = '1000';
+      if (value > 10000) this.populationInput.value = '10000';
     });
 
     this.survivalInput.addEventListener('input', () => {
@@ -115,7 +131,31 @@ export class UIController {
       return;
     }
 
-    this.ga = new GeneticAlgorithm(config);
+    // Create a temporary instance to get the character pool
+    const tempGA = new GeneticAlgorithm(config);
+    const characterPool = tempGA.getCharacterPool();
+
+    // Check if all characters in target are in the character set
+    const invalidChars: string[] = [];
+    for (const char of config.target) {
+      if (!characterPool.includes(char) && !invalidChars.includes(char)) {
+        invalidChars.push(char);
+      }
+    }
+
+    if (invalidChars.length > 0) {
+      const charList = invalidChars.map((c) => `'${c}'`).join(', ');
+      this.updateStatus(
+        `Target string contains characters not in selected character set: ${charList}`,
+        'error',
+      );
+      return;
+    }
+
+    // Clear previous data before initializing new simulation
+    this.chart.clear();
+
+    this.ga = tempGA;
     this.ga.initialize();
 
     const stats = this.ga.getStats();
@@ -199,6 +239,15 @@ export class UIController {
     this.bestScoreDisplay.textContent = `${stats.bestIndividual.fitness} / ${stats.bestIndividual.dna.length}`;
     this.avgScoreDisplay.textContent = stats.averageFitness.toFixed(2);
     this.updatePopulationDisplay();
+
+    // Update chart
+    const maxFitness = stats.bestIndividual.dna.length;
+    this.chart.addDataPoint(
+      stats.generation,
+      stats.bestIndividual.fitness,
+      stats.averageFitness,
+      maxFitness,
+    );
   }
 
   private clearDisplay(): void {
@@ -208,6 +257,7 @@ export class UIController {
     this.avgScoreDisplay.textContent = '-';
     this.populationList.innerHTML =
       '<p class="empty-message">Initialize the simulation to see the population</p>';
+    this.chart.clear();
   }
 
   private updateStatus(message: string, type: 'success' | 'error' | 'info' | 'running'): void {
@@ -230,6 +280,12 @@ export class UIController {
     this.survivalInput.disabled = this.isRunning;
     this.characterSetSelect.disabled = this.isRunning;
     this.mutationToggle.disabled = this.isRunning;
+
+    // Disable preset buttons while running
+    const presetButtons = document.querySelectorAll('.btn-preset');
+    presetButtons.forEach((button) => {
+      (button as HTMLButtonElement).disabled = this.isRunning;
+    });
   }
 
   private updatePopulationDisplay(): void {
@@ -266,5 +322,79 @@ export class UIController {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+  }
+
+  private applyPreset(preset: string): void {
+    interface PresetConfig {
+      target: string;
+      population: number;
+      survival: number;
+      characterSet: CharacterSet;
+      mutation: boolean;
+      delay: number;
+    }
+
+    const presets: Record<string, PresetConfig> = {
+      hello: {
+        target: 'Hello World',
+        population: 500,
+        survival: 20,
+        characterSet: 'letters-space',
+        mutation: false,
+        delay: 100,
+      },
+      shakespeare: {
+        target: 'To be or not to be',
+        population: 800,
+        survival: 15,
+        characterSet: 'letters-space',
+        mutation: true,
+        delay: 50,
+      },
+      pangram: {
+        target: 'The quick brown fox jumps',
+        population: 1000,
+        survival: 10,
+        characterSet: 'letters-space',
+        mutation: true,
+        delay: 50,
+      },
+      evolution: {
+        target: 'Evolution in action',
+        population: 800,
+        survival: 20,
+        characterSet: 'letters-space',
+        mutation: false,
+        delay: 75,
+      },
+      dna: {
+        target: 'ACGTACGTACGT',
+        population: 300,
+        survival: 25,
+        characterSet: 'letters-space',
+        mutation: false,
+        delay: 100,
+      },
+      code: {
+        target: 'function hello()',
+        population: 600,
+        survival: 15,
+        characterSet: 'printable-ascii',
+        mutation: true,
+        delay: 75,
+      },
+    };
+
+    const config = presets[preset];
+    if (config) {
+      this.targetInput.value = config.target;
+      this.populationInput.value = config.population.toString();
+      this.survivalInput.value = config.survival.toString();
+      this.characterSetSelect.value = config.characterSet;
+      this.mutationToggle.checked = config.mutation;
+      this.delayInput.value = config.delay.toString();
+
+      this.updateStatus(`Preset loaded: "${config.target}"`, 'info');
+    }
   }
 }

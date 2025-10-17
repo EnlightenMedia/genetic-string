@@ -15,6 +15,8 @@ export class UIController {
   private delayInput: HTMLInputElement;
   private characterSetSelect: HTMLSelectElement;
   private mutationToggle: HTMLInputElement;
+  private mutationRateSlider: HTMLInputElement;
+  private mutationRateValue: HTMLElement;
 
   // Button elements
   private initButton: HTMLButtonElement;
@@ -28,8 +30,12 @@ export class UIController {
   private bestStringDisplay: HTMLElement;
   private bestScoreDisplay: HTMLElement;
   private avgScoreDisplay: HTMLElement;
+  private diversityDisplay: HTMLElement;
+  private stagnationDisplay: HTMLElement;
   private statusDisplay: HTMLElement;
   private populationList: HTMLElement;
+  private convergenceAlert: HTMLElement;
+  private stagnantGensSpan: HTMLElement;
 
   constructor() {
     // Get input elements
@@ -39,6 +45,8 @@ export class UIController {
     this.delayInput = this.getElement<HTMLInputElement>('#delay');
     this.characterSetSelect = this.getElement<HTMLSelectElement>('#characterSet');
     this.mutationToggle = this.getElement<HTMLInputElement>('#mutation');
+    this.mutationRateSlider = this.getElement<HTMLInputElement>('#mutationRate');
+    this.mutationRateValue = this.getElement('#mutationRateValue');
 
     // Get button elements
     this.initButton = this.getElement<HTMLButtonElement>('#initBtn');
@@ -52,8 +60,12 @@ export class UIController {
     this.bestStringDisplay = this.getElement('#bestString');
     this.bestScoreDisplay = this.getElement('#bestScore');
     this.avgScoreDisplay = this.getElement('#avgScore');
+    this.diversityDisplay = this.getElement('#diversity');
+    this.stagnationDisplay = this.getElement('#stagnation');
     this.statusDisplay = this.getElement('#status');
     this.populationList = this.getElement('#populationList');
+    this.convergenceAlert = this.getElement('#convergenceAlert');
+    this.stagnantGensSpan = this.getElement('#stagnantGens');
 
     // Initialize chart
     this.chart = new ChartController('fitnessChart', 'chartEmptyMessage');
@@ -105,6 +117,11 @@ export class UIController {
       const value = parseInt(this.delayInput.value);
       if (value < 0) this.delayInput.value = '0';
     });
+
+    // Update mutation rate display
+    this.mutationRateSlider.addEventListener('input', () => {
+      this.mutationRateValue.textContent = this.mutationRateSlider.value;
+    });
   }
 
   private getConfig(): GeneticAlgorithmConfig {
@@ -113,7 +130,7 @@ export class UIController {
       populationSize: parseInt(this.populationInput.value),
       survivalRate: parseInt(this.survivalInput.value),
       mutationEnabled: this.mutationToggle.checked,
-      mutationRate: 0.01,
+      mutationRate: parseFloat(this.mutationRateSlider.value) / 100,
       characterSet: this.characterSetSelect.value as CharacterSet,
     };
   }
@@ -238,7 +255,17 @@ export class UIController {
     this.bestStringDisplay.textContent = `"${stats.bestIndividual.dna}"`;
     this.bestScoreDisplay.textContent = `${stats.bestIndividual.fitness} / ${stats.bestIndividual.dna.length}`;
     this.avgScoreDisplay.textContent = stats.averageFitness.toFixed(2);
+    this.diversityDisplay.textContent = `${stats.diversity.toFixed(1)}%`;
+    this.stagnationDisplay.textContent = stats.generationsSinceImprovement.toString();
     this.updatePopulationDisplay();
+
+    // Update convergence alert
+    if (stats.isStagnant && !stats.isComplete) {
+      this.convergenceAlert.classList.remove('hidden');
+      this.stagnantGensSpan.textContent = stats.generationsSinceImprovement.toString();
+    } else {
+      this.convergenceAlert.classList.add('hidden');
+    }
 
     // Update chart
     const maxFitness = stats.bestIndividual.dna.length;
@@ -255,8 +282,11 @@ export class UIController {
     this.bestStringDisplay.textContent = '-';
     this.bestScoreDisplay.textContent = '-';
     this.avgScoreDisplay.textContent = '-';
+    this.diversityDisplay.textContent = '-';
+    this.stagnationDisplay.textContent = '-';
     this.populationList.innerHTML =
       '<p class="empty-message">Initialize the simulation to see the population</p>';
+    this.convergenceAlert.classList.add('hidden');
     this.chart.clear();
   }
 
@@ -280,6 +310,7 @@ export class UIController {
     this.survivalInput.disabled = this.isRunning;
     this.characterSetSelect.disabled = this.isRunning;
     this.mutationToggle.disabled = this.isRunning;
+    this.mutationRateSlider.disabled = this.isRunning;
 
     // Disable preset buttons while running
     const presetButtons = document.querySelectorAll('.btn-preset');
@@ -331,6 +362,7 @@ export class UIController {
       survival: number;
       characterSet: CharacterSet;
       mutation: boolean;
+      mutationRate: number;
       delay: number;
     }
 
@@ -341,6 +373,7 @@ export class UIController {
         survival: 20,
         characterSet: 'letters-space',
         mutation: false,
+        mutationRate: 1.0,
         delay: 100,
       },
       shakespeare: {
@@ -349,6 +382,7 @@ export class UIController {
         survival: 15,
         characterSet: 'letters-space',
         mutation: true,
+        mutationRate: 2.0,
         delay: 50,
       },
       pangram: {
@@ -357,6 +391,7 @@ export class UIController {
         survival: 10,
         characterSet: 'letters-space',
         mutation: true,
+        mutationRate: 1.5,
         delay: 50,
       },
       evolution: {
@@ -365,6 +400,7 @@ export class UIController {
         survival: 20,
         characterSet: 'letters-space',
         mutation: false,
+        mutationRate: 1.0,
         delay: 75,
       },
       dna: {
@@ -373,6 +409,7 @@ export class UIController {
         survival: 25,
         characterSet: 'letters-space',
         mutation: false,
+        mutationRate: 0.5,
         delay: 100,
       },
       code: {
@@ -381,6 +418,7 @@ export class UIController {
         survival: 15,
         characterSet: 'printable-ascii',
         mutation: true,
+        mutationRate: 3.0,
         delay: 75,
       },
     };
@@ -392,6 +430,8 @@ export class UIController {
       this.survivalInput.value = config.survival.toString();
       this.characterSetSelect.value = config.characterSet;
       this.mutationToggle.checked = config.mutation;
+      this.mutationRateSlider.value = config.mutationRate.toString();
+      this.mutationRateValue.textContent = config.mutationRate.toString();
       this.delayInput.value = config.delay.toString();
 
       this.updateStatus(`Preset loaded: "${config.target}"`, 'info');

@@ -18,7 +18,10 @@ export interface GenerationStats {
   generation: number;
   bestIndividual: Individual;
   averageFitness: number;
+  diversity: number;
   isComplete: boolean;
+  isStagnant: boolean;
+  generationsSinceImprovement: number;
 }
 
 export class GeneticAlgorithm {
@@ -26,6 +29,9 @@ export class GeneticAlgorithm {
   private population: Individual[] = [];
   private generation: number = 0;
   private characterPool: string = '';
+  private bestFitnessHistory: number[] = [];
+  private generationsSinceImprovement: number = 0;
+  private readonly stagnationThreshold: number = 50;
 
   constructor(config: GeneticAlgorithmConfig) {
     this.config = {
@@ -83,6 +89,8 @@ export class GeneticAlgorithm {
   initialize(): void {
     this.population = [];
     this.generation = 0;
+    this.bestFitnessHistory = [];
+    this.generationsSinceImprovement = 0;
     const targetLength = this.config.target.length;
 
     for (let i = 0; i < this.config.populationSize; i++) {
@@ -123,6 +131,13 @@ export class GeneticAlgorithm {
       }
     }
     return mutated;
+  }
+
+  private calculateDiversity(): number {
+    if (this.population.length === 0) return 0;
+
+    const uniqueStrings = new Set(this.population.map((ind) => ind.dna));
+    return (uniqueStrings.size / this.population.length) * 100;
   }
 
   step(): GenerationStats {
@@ -174,19 +189,38 @@ export class GeneticAlgorithm {
     const bestIndividual = sortedPopulation[0];
     const totalFitness = this.population.reduce((sum, ind) => sum + ind.fitness, 0);
     const averageFitness = totalFitness / this.population.length;
+    const diversity = this.calculateDiversity();
     const isComplete = bestIndividual.fitness === this.config.target.length;
+
+    // Track best fitness history and check for improvements
+    if (
+      this.bestFitnessHistory.length === 0 ||
+      bestIndividual.fitness > this.bestFitnessHistory[this.bestFitnessHistory.length - 1]
+    ) {
+      this.generationsSinceImprovement = 0;
+    } else {
+      this.generationsSinceImprovement++;
+    }
+    this.bestFitnessHistory.push(bestIndividual.fitness);
+
+    const isStagnant = this.generationsSinceImprovement >= this.stagnationThreshold;
 
     return {
       generation: this.generation,
       bestIndividual,
       averageFitness,
+      diversity,
       isComplete,
+      isStagnant,
+      generationsSinceImprovement: this.generationsSinceImprovement,
     };
   }
 
   reset(): void {
     this.population = [];
     this.generation = 0;
+    this.bestFitnessHistory = [];
+    this.generationsSinceImprovement = 0;
   }
 
   updateConfig(config: Partial<GeneticAlgorithmConfig>): void {

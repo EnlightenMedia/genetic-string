@@ -39,12 +39,20 @@ This project visualizes how genetic algorithms work by evolving random strings t
   - DNA sequences
   - Code snippets
 - **Character Set Selection**: Choose from letters, alphanumeric, or full ASCII
+- **Selection Strategies**: Three different selection methods:
+  - **Elitism**: Keeps top survivors, then breeds exclusively among them to repopulate
+  - **Semi-Elitism**: One parent from top survivors, one from entire population
+  - **Random Selection**: Both parents randomly selected from entire population
 - **Population Diversity Metric**: Monitor genetic diversity percentage
 - **Convergence Detection**: Automatic alerts when evolution stagnates (50+ generations without improvement)
 - **Mutation Controls**:
   - Toggle mutation on/off
   - Adjustable mutation rate slider (0.1% - 10%)
   - Real-time rate display
+- **Multi-Metric Chart**: Real-time visualization with:
+  - Best fitness over generations
+  - Average fitness trends
+  - Population diversity percentage (dynamic scaling)
 
 ## 🚀 Getting Started
 
@@ -92,6 +100,10 @@ The built files will be in the `dist` directory.
    - **Population Size**: Number of individuals (more = better exploration but slower)
    - **Survival Percentage**: What % of the best individuals survive each generation
    - **Character Set**: Available characters for the algorithm to use
+   - **Selection Strategy**: Choose how offspring are generated:
+     - **Elitism**: Top survivors breed among themselves (most selective)
+     - **Semi-Elitism**: Mix elite with general population (balanced, default)
+     - **Random**: Random selection from entire population (most diverse)
    - **Mutation**: Enable to introduce random changes (helps escape local optima)
    - **Mutation Rate**: Fine-tune the probability of character mutations (0.1% - 10%)
    - **Step Delay**: Time between generations when running automatically
@@ -105,7 +117,10 @@ The built files will be in the `dist` directory.
    - **Reset**: Clear everything and start over
 
 5. **Monitor Progress**:
-   - Watch the progress chart show best and average fitness over generations
+   - Watch the progress chart show:
+     - Best fitness over generations (green line, left axis)
+     - Average fitness trends (blue line, left axis)
+     - Population diversity percentage (orange line, right axis with dynamic scaling)
    - Track population diversity percentage to see genetic variation
    - Monitor "generations since improvement" counter
    - Watch for convergence alerts if evolution stagnates for 50+ generations
@@ -203,12 +218,12 @@ Contributions are welcome! Some ideas for future improvements:
 
 - Additional crossover strategies (two-point, uniform)
 - Tournament selection
-- Elitism controls (guarantee top N survive)
 - Export/import simulation data as CSV/JSON
 - More sophisticated fitness functions (partial credit for similar characters)
 - Character-by-character visualization with color coding (green=match, red=mismatch)
 - Adaptive mutation rates (decrease as fitness improves)
 - Best-of-generation archive
+- Multi-objective optimization (fitness + diversity)
 
 ## 📝 License
 
